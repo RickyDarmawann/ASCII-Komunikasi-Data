@@ -312,9 +312,9 @@ def add_contact(owner_id: str, target_id: str) -> tuple[bool, str]:
     if str(target["id"]) == owner_id:
         return False, "Kamu tidak bisa menambahkan ID sendiri."
     execute(
-        "INSERT INTO ascii_chat.contacts (owner_id, contact_id) VALUES (%s, %s) "
+        "INSERT INTO ascii_chat.contacts (owner_id, contact_id) VALUES (%s, %s), (%s, %s) "
         "ON CONFLICT (owner_id, contact_id) DO NOTHING",
-        (owner_id, str(target["id"])),
+        (owner_id, str(target["id"]), str(target["id"]), owner_id),
     )
     return True, f"Kontak {target['user_id']} ditambahkan."
 
