@@ -660,32 +660,45 @@ def send_message(sender_id: str, recipient_id: str, body: str) -> tuple[bool, st
     return True, "Pesan terkirim."
 
 
-# Menghapus semua pesan dari seluruh percakapan di database.
-def delete_all_messages() -> int:
-    # Hapus semua baris pesan, tanpa menghapus akun atau daftar kontak.
+# Menghapus pesan hanya dari percakapan antara pengguna yang sedang login dan satu kontak.
+def delete_conversation_messages(user_id: str, contact_id: str) -> int:
+    # Hanya hapus pesan yang dikirim di antara dua ID ini, bukan pesan pengguna lain.
     with closing(db_connect()) as conn:
         with conn:
             with conn.cursor() as cur:
-                cur.execute("DELETE FROM ascii_chat.messages")
-                # Mengembalikan jumlah pesan yang terhapus.
+                cur.execute(
+                    "DELETE FROM ascii_chat.messages "
+                    "WHERE (sender_id=%s AND recipient_id=%s) "
+                    "OR (sender_id=%s AND recipient_id=%s)",
+                    (user_id, contact_id, contact_id, user_id),
+                )
+                # Mengembalikan jumlah pesan yang terhapus dari percakapan terpilih.
                 return cur.rowcount
 
 
-# Dialog konfirmasi agar semua pesan tidak terhapus karena salah tekan.
-@st.dialog("Hapus semua pesan?")
-def confirm_delete_all_messages():
-    st.warning("Tindakan ini menghapus pesan dari SEMUA percakapan untuk SEMUA pengguna. Pesan yang dihapus tidak bisa dikembalikan.")
+# Meminta konfirmasi sebelum menghapus pesan dari percakapan terpilih.
+@st.dialog("Hapus percakapan?")
+def confirm_delete_conversation(user_id: str, contact_id: str, contact_name: str):
+    st.warning(
+        f"Pesan antara kamu dan {contact_name} akan dihapus untuk kalian berdua. "
+        "Pesan dari percakapan pengguna lain tidak akan terpengaruh. Tindakan ini tidak bisa dibatalkan."
+    )
     confirm_col, cancel_col = st.columns(2)
     with confirm_col:
-        if st.button("Ya, hapus semua", type="primary", use_container_width=True, key="confirm_delete_all"):
+        if st.button(
+            "Ya, hapus percakapan", type="primary",
+            use_container_width=True, key=f"confirm_delete_conversation_{contact_id}"
+        ):
             try:
-                deleted_count = delete_all_messages()
-                st.session_state["chat_notice"] = f"Berhasil menghapus {deleted_count} pesan dari seluruh aplikasi."
+                deleted_count = delete_conversation_messages(user_id, contact_id)
+                st.session_state["chat_notice"] = (
+                    f"Percakapan dengan {contact_name} dihapus ({deleted_count} pesan)."
+                )
                 st.rerun()
             except Exception as exc:
                 st.error(db_error_message(exc))
     with cancel_col:
-        if st.button("Batal", use_container_width=True, key="cancel_delete_all"):
+        if st.button("Batal", use_container_width=True, key=f"cancel_delete_conversation_{contact_id}"):
             st.rerun()
 
 
@@ -695,39 +708,10 @@ def chat_page():
     # Menyimpan hasil proses ke dalam variabel.
     user = st.session_state["user"]
 
-    # Membuat tombol hapus yang tetap di kanan bawah dan sedikit transparan.
-    st.markdown("""
-        <style>
-        div.st-key-delete_all_messages {
-            position: fixed;
-            right: 24px;
-            bottom: 22px;
-            z-index: 999;
-        }
-        div.st-key-delete_all_messages button {
-            background: rgba(190, 35, 45, 0.78);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.18);
-            opacity: 0.82;
-            transition: opacity 0.15s ease;
-        }
-        div.st-key-delete_all_messages button:hover {
-            opacity: 1;
-            background: rgba(160, 25, 35, 0.96);
-            color: white;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    # Tampilkan pemberitahuan setelah semua pesan berhasil dihapus.
+    # Tampilkan pemberitahuan setelah percakapan berhasil dihapus.
     if st.session_state.get("chat_notice"):
         st.success(st.session_state["chat_notice"])
         st.session_state["chat_notice"] = None
-
-    # Tombol ini tersedia bagi setiap pengguna yang sudah masuk.
-    if st.button("Hapus semua pesan", key="delete_all_messages", help="Menghapus pesan semua pengguna di seluruh aplikasi"):
-        confirm_delete_all_messages()
 
     # Menampilkan atau memproses bagian antarmuka Streamlit.
     st.title("ASCII Chat")
@@ -824,6 +808,13 @@ def chat_page():
 # Menampilkan pesan secara berkala; setiap pesan bisa dibuka untuk melihat tabel ASCII dan grafik NRZ-I.
 # Membuat fungsi untuk menjalankan tugas yang disebut pada namanya.
 def render_conversation(user: dict, contact: dict):
+    # Tombol hapus hanya berlaku untuk kontak yang sedang dibuka.
+    if st.button(
+        "Hapus percakapan", key=f"delete_conversation_{contact['id']}",
+        help="Hapus pesan antara kamu dan kontak ini saja"
+    ):
+        confirm_delete_conversation(user["id"], contact["id"], contact["user_id"])
+
     # Mengatur cara fungsi di bawahnya dijalankan.
     @st.fragment(run_every="2s")
     # Membuat fungsi untuk menjalankan tugas yang disebut pada namanya.
