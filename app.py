@@ -5,7 +5,6 @@ import html
 import re
 from contextlib import closing
 import uuid
-from datetime import datetime
 from typing import Any
 
 import bcrypt
@@ -62,7 +61,7 @@ def execute(sql: str, params: tuple = ()) -> None:
 def init_state():
     defaults = {
         "user": None, "active_contact": None, "auth_tab": "Masuk",
-        "register_ok": False, "flash": None, "message_draft": "",
+        "register_ok": False, "flash": None,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -180,9 +179,7 @@ def nrzi_svg(text: str, initial_high: bool = False) -> str:
     for i, level_now in enumerate(levels):
         x = left + i * bit_w
         y_now = high_y if level_now else low_y
-        if i == 0 and y_now != y_prev:
-            points.append(f"{x},{y_now}")
-        elif y_now != y_prev:
+        if y_now != y_prev:
             points.append(f"{x},{y_now}")
         points.append(f"{x+bit_w},{y_now}")
         y_prev = y_now
@@ -209,7 +206,7 @@ def nrzi_svg(text: str, initial_high: bool = False) -> str:
 
 
 # Menampilkan SVG NRZ-I di halaman Streamlit; level awal dipatok rendah.
-def show_signal(text: str, key_suffix: str = "signal"):
+def show_signal(text: str):
     # Level awal selalu rendah; tidak perlu menampilkan pilihan level ke pengguna.
     svg = nrzi_svg(text, initial_high=False)
     components.html(
@@ -351,7 +348,7 @@ def list_contacts(owner_id: str) -> list[dict]:
 def list_messages(owner_id: str, contact_id: str) -> list[dict]:
     return query_all(
         "SELECT id, sender_id::text AS sender_id, recipient_id::text AS recipient_id, "
-        "body, created_at FROM ascii_chat.messages "
+        "body FROM ascii_chat.messages "
         "WHERE (sender_id=%s AND recipient_id=%s) OR (sender_id=%s AND recipient_id=%s) "
         "ORDER BY created_at DESC LIMIT 100",
         (owner_id, contact_id, contact_id, owner_id),
@@ -459,7 +456,7 @@ def render_conversation(user: dict, contact: dict):
                     hide_index=True, use_container_width=True,
                 )
                 st.subheader("NRZ-I")
-                show_signal(msg["body"], key_suffix=f"message_{msg['id']}")
+                show_signal(msg["body"])
 
         with st.form(f"send_{contact['id']}", clear_on_submit=True):
             body = st.text_input("Pesan", max_chars=2000, key=f"body_{contact['id']}")
@@ -503,7 +500,7 @@ def ascii_test_panel():
         if ok:
             st.success("Semua karakter didukung oleh ASCII tercetak.")
             with st.expander("Lihat sinyal NRZ-I untuk teks uji"):
-                show_signal(sample, key_suffix="ascii_test")
+                show_signal(sample)
         else:
             st.warning(reason)
 
