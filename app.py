@@ -415,21 +415,15 @@ def render_conversation(user: dict, contact: dict):
             mine = msg["sender_id"] == user["id"]
             align = "flex-end" if mine else "flex-start"
             bubble = "#DDF7E8" if mine else "#F0F2F5"
-            timestamp = msg["created_at"]
-            if isinstance(timestamp, datetime):
-                timestamp = timestamp.astimezone().strftime("%H:%M")
-            else:
-                timestamp = str(timestamp)[11:16]
             st.markdown(
                 f'<div style="display:flex;justify-content:{align};margin:7px 0">'
                 f'<div style="max-width:82%;background:{bubble};padding:9px 12px;'
                 f'border-radius:12px;color:#202124;overflow-wrap:anywhere">'
                 f'<div>{html.escape(msg["body"])}</div>'
-                f'<div style="font-size:11px;text-align:right;color:#667085;margin-top:4px">{timestamp}</div>'
                 f'</div></div>',
                 unsafe_allow_html=True,
             )
-            with st.expander(f"Lihat sinyal · {timestamp} · {len(msg['body'])} karakter"):
+            with st.expander(f"Lihat sinyal · {len(msg['body'])} karakter"):
                 rows = signal_table(msg["body"])
                 st.dataframe(
                     [{"Karakter": "spasi" if r["char"] == " " else r["char"],
