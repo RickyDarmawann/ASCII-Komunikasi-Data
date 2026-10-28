@@ -18,7 +18,9 @@ import streamlit.components.v1 as components
 st.set_page_config(page_title="ASCII Chat | Komunikasi Data", page_icon="💬", layout="wide")
 
 
-# ---------- Koneksi dan sesi ----------
+# ---------- Koneksi database dan sesi pengguna ----------
+# Bagian ini mengatur koneksi PostgreSQL dan data sesi Streamlit.
+# Membuat koneksi ke database Supabase PostgreSQL dari Streamlit Secrets.
 def db_connect():
     """Buka koneksi PostgreSQL menggunakan URL rahasia dari Streamlit Secrets."""
     try:
@@ -30,6 +32,7 @@ def db_connect():
     return psycopg2.connect(database_url, connect_timeout=10, cursor_factory=RealDictCursor)
 
 
+# Menjalankan SQL yang menghasilkan satu baris data, misalnya pencarian pengguna.
 def query_one(sql: str, params: tuple = ()) -> Any:
     with closing(db_connect()) as conn:
         with conn:
@@ -38,6 +41,7 @@ def query_one(sql: str, params: tuple = ()) -> Any:
                 return cur.fetchone()
 
 
+# Menjalankan SQL yang menghasilkan banyak baris data, misalnya daftar pesan.
 def query_all(sql: str, params: tuple = ()) -> list[dict]:
     with closing(db_connect()) as conn:
         with conn:
@@ -46,6 +50,7 @@ def query_all(sql: str, params: tuple = ()) -> list[dict]:
                 return list(cur.fetchall())
 
 
+# Menjalankan SQL perubahan data yang tidak perlu mengembalikan baris.
 def execute(sql: str, params: tuple = ()) -> None:
     with closing(db_connect()) as conn:
         with conn:
@@ -53,6 +58,7 @@ def execute(sql: str, params: tuple = ()) -> None:
                 cur.execute(sql, params)
 
 
+# Menyiapkan nilai awal session_state agar status login dan chat tetap terjaga saat UI diperbarui.
 def init_state():
     defaults = {
         "user": None, "active_contact": None, "auth_tab": "Masuk",
@@ -63,7 +69,9 @@ def init_state():
             st.session_state[key] = value
 
 
-# ---------- Validasi ASCII dan encoding ----------
+# ---------- Pemeriksaan karakter, konversi ASCII, dan pembentukan frame ----------
+# Bagian ini mengubah karakter menjadi kode ASCII dan bit untuk dikirim sebagai frame.
+# Memeriksa setiap karakter dan menandai apakah termasuk ASCII tercetak (kode 32–126).
 def inspect_ascii(text: str) -> list[dict]:
     rows = []
     for char in text:
@@ -79,6 +87,7 @@ def inspect_ascii(text: str) -> list[dict]:
     return rows
 
 
+# Memastikan pesan tidak kosong dan semua karakternya didukung sebelum dikirim.
 def validate_message(text: str) -> tuple[bool, str]:
     if not text:
         return False, "Pesan tidak boleh kosong."
@@ -92,36 +101,42 @@ def validate_message(text: str) -> tuple[bool, str]:
     return True, ""
 
 
+# KONVERSI ASCII: ord() mengambil kode desimal; format biner menghasilkan 7 bit (MSB lebih dulu).
+# Lalu dibuat parity genap dan frame: Start bit 0 + 7 bit data + parity + End bit 1.
 def encode_character(char: str) -> dict:
-    value = ord(char)
-    bits = f"{value:07b}"
-    parity = bits.count("1") % 2  # parity bit membuat jumlah 1 genap
-    frame = "0" + bits + str(parity) + "1"
+    value = ord(char)  # Karakter -> kode ASCII desimal.
+    bits = f"{value:07b}"  # Kode desimal -> representasi biner 7 bit.
+    parity = bits.count("1") % 2  # Parity genap: total bit 1 termasuk parity menjadi genap.
+    frame = "0" + bits + str(parity) + "1"  # Susunan frame: Start + Data + Parity + End.
     return {
         "char": char, "ascii": value, "hex": f"{value:02X}", "bits": bits,
         "parity": parity, "end": 1, "frame": frame,
     }
 
 
+# Membuat tabel encoding dengan memanggil encode_character() untuk setiap karakter.
 def signal_table(text: str) -> list[dict]:
     return [encode_character(ch) for ch in text]
 
 
-# ---------- Penggambar sinyal SVG ----------
+# ---------- Logika NRZ-I dan penggambaran sinyal ----------
+# Bagian ini mengubah urutan bit menjadi level tegangan, lalu menggambarnya sebagai SVG.
+# Membentuk grafik NRZ-I dalam SVG berdasarkan bit frame setiap karakter.
 def nrzi_svg(text: str, initial_high: bool = False) -> str:
     """SVG NRZ-I: 1 membalik level di awal bit; 0 mempertahankan level."""
     if not text:
         return '<p style="font:14px sans-serif;color:#777">Belum ada karakter untuk divisualisasikan.</p>'
 
-    frames = signal_table(text)
-    bits = "".join(item["frame"] for item in frames)
-    start_level = 1 if initial_high else 0
+    frames = signal_table(text)  # Encode tiap karakter menjadi frame bit.
+    bits = "".join(item["frame"] for item in frames)  # Gabungkan semua frame menjadi satu aliran bit.
+    start_level = 1 if initial_high else 0  # Level awal: rendah (0) karena initial_high=False.
     level = start_level
     levels = []
+    # LOGIKA NRZ-I: bit 1 membalik level tegangan; bit 0 mempertahankan level sebelumnya.
     for bit in bits:
         if bit == "1":
-            level = 1 - level
-        levels.append(level)
+            level = 1 - level  # 0 -> 1 atau 1 -> 0.
+        levels.append(level)  # Simpan level untuk digambar pada kolom bit ini.
 
     bit_w, left, top = 42, 24, 72
     high_y, low_y = 108, 168
@@ -137,7 +152,7 @@ def nrzi_svg(text: str, initial_high: bool = False) -> str:
         f'<text x="4" y="{low_y+4}" font-size="12">-V</text>',
     ]
 
-    # Batas frame dan judul tiap karakter.
+    # VISUALISASI: tandai batas frame dan beri judul untuk setiap karakter.
     for i, frame in enumerate(frames):
         x = left + i * 10 * bit_w
         char_label = "spasi" if frame["char"] == " " else f"Huruf {frame['char']}"
@@ -148,7 +163,7 @@ def nrzi_svg(text: str, initial_high: bool = False) -> str:
         if i > 0:
             parts.append(f'<line x1="{x}" y1="34" x2="{x}" y2="224" stroke="#555" stroke-width="2.5"/>')
 
-    # Kolom bit tipis dan label bit.
+    # VISUALISASI: gambar garis pembatas kolom dan label 0/1 di bawah grafik.
     for i, bit in enumerate(bits):
         x = left + i * bit_w
         parts.append(f'<line x1="{x}" y1="36" x2="{x}" y2="224" stroke="#d9d9d9" stroke-width="1"/>')
@@ -157,7 +172,8 @@ def nrzi_svg(text: str, initial_high: bool = False) -> str:
         )
     parts.append(f'<line x1="{left+plot_w}" y1="36" x2="{left+plot_w}" y2="224" stroke="#d9d9d9" stroke-width="1"/>')
 
-    # Gelombang siku: level sebelumnya dipertahankan hingga tepi bit,
+    # VISUALISASI GELOMBANG: bentuk garis siku dari level NRZ-I yang sudah dihitung.
+    # Level sebelumnya dipertahankan hingga tepi bit,
     # lalu bit 1 membalik level tepat di awal kolom bit tersebut.
     y_prev = high_y if start_level else low_y
     points = [f"{left},{y_prev}"]
@@ -175,7 +191,7 @@ def nrzi_svg(text: str, initial_high: bool = False) -> str:
         '" fill="none" stroke="#1D9E75" stroke-width="4" stroke-linejoin="miter" stroke-linecap="square"/>'
     )
 
-    # Kurung/kelompok S, Data, P, E berada tepat di kolom masing-masing.
+    # VISUALISASI FRAME: beri label Start (S), Data, Parity (P), dan End (E) di bawah bit.
     for i, frame in enumerate(frames):
         x = left + i * 10 * bit_w
         groups = [(0, 1, "S"), (1, 8, f'Data "{html.escape(frame["char"])}"'), (8, 9, "P"), (9, 10, "E")]
@@ -192,6 +208,7 @@ def nrzi_svg(text: str, initial_high: bool = False) -> str:
     return "".join(parts)
 
 
+# Menampilkan SVG NRZ-I di halaman Streamlit; level awal dipatok rendah.
 def show_signal(text: str, key_suffix: str = "signal"):
     # Level awal selalu rendah; tidak perlu menampilkan pilihan level ke pengguna.
     svg = nrzi_svg(text, initial_high=False)
@@ -201,7 +218,9 @@ def show_signal(text: str, key_suffix: str = "signal"):
     )
 
 
-# ---------- Autentikasi ----------
+# ---------- Pendaftaran, login, dan pesan kesalahan ----------
+# Password disimpan sebagai hash bcrypt, bukan teks asli.
+# Memvalidasi data pendaftaran, mengecek duplikasi, lalu menyimpan akun dengan hash password.
 def register_user(user_id: str, email: str, password: str, confirm: str) -> tuple[bool, str]:
     user_id, email = user_id.strip(), email.strip().lower()
     if not re.fullmatch(r"[A-Za-z0-9_]{3,24}", user_id):
@@ -227,6 +246,7 @@ def register_user(user_id: str, email: str, password: str, confirm: str) -> tupl
     return True, "Pendaftaran berhasil. Silakan masuk menggunakan ID, email, dan password."
 
 
+# Mencari akun berdasarkan ID dan email, lalu mencocokkan password dengan hash bcrypt.
 def login_user(user_id: str, email: str, password: str) -> tuple[bool, str, dict | None]:
     row = query_one(
         "SELECT id, user_id, email, password_hash FROM ascii_chat.users "
@@ -238,6 +258,7 @@ def login_user(user_id: str, email: str, password: str) -> tuple[bool, str, dict
     return True, "Berhasil masuk.", {"id": str(row["id"]), "user_id": row["user_id"], "email": row["email"]}
 
 
+# Menggambar UI daftar/masuk dan memproses hasil pengiriman form autentikasi.
 def auth_page():
     st.title("ASCII Chat")
     st.caption("Praktikum Komunikasi Data · Chat satu lawan satu")
@@ -287,6 +308,7 @@ def auth_page():
     st.caption("Encoding: ASCII 7 bit. ANSI, UTF-8, dan UTF-16 tidak didukung sebagai encoding aplikasi.")
 
 
+# Mengubah exception menjadi pesan yang aman ditampilkan kepada pengguna.
 def db_error_message(exc: Exception) -> str:
     # Pesan umum menghindari kebocoran detail koneksi/kredensial.
     if isinstance(exc, (psycopg2.Error, RuntimeError)):
@@ -294,7 +316,8 @@ def db_error_message(exc: Exception) -> str:
     return f"Terjadi kesalahan: {type(exc).__name__}. Silakan coba lagi."
 
 
-# ---------- Kontak dan percakapan ----------
+# ---------- Kontak, pengiriman pesan, dan tampilan percakapan ----------
+# Mencari pengguna berdasarkan ID dan menyimpan relasi kontak untuk kedua arah.
 def add_contact(owner_id: str, target_id: str) -> tuple[bool, str]:
     target_id = target_id.strip()
     if not target_id:
@@ -315,6 +338,7 @@ def add_contact(owner_id: str, target_id: str) -> tuple[bool, str]:
     return True, f"Kontak {target['user_id']} ditambahkan."
 
 
+# Mengambil daftar kontak yang dimiliki pengguna.
 def list_contacts(owner_id: str) -> list[dict]:
     return query_all(
         "SELECT u.id::text AS id, u.user_id FROM ascii_chat.contacts c "
@@ -324,6 +348,7 @@ def list_contacts(owner_id: str) -> list[dict]:
     )
 
 
+# Mengambil maksimal 100 pesan di antara dua pengguna, dari yang lama ke yang baru.
 def list_messages(owner_id: str, contact_id: str) -> list[dict]:
     return query_all(
         "SELECT id, sender_id::text AS sender_id, recipient_id::text AS recipient_id, "
@@ -334,6 +359,7 @@ def list_messages(owner_id: str, contact_id: str) -> list[dict]:
     )[::-1]
 
 
+# Memvalidasi isi pesan, memastikan kedua pihak terhubung sebagai kontak, lalu menyimpan pesan.
 def send_message(sender_id: str, recipient_id: str, body: str) -> tuple[bool, str]:
     ok, reason = validate_message(body)
     if not ok:
@@ -352,6 +378,7 @@ def send_message(sender_id: str, recipient_id: str, body: str) -> tuple[bool, st
     return True, "Pesan terkirim."
 
 
+# Membuat tampilan utama chat: status akun, daftar kontak, dan percakapan terpilih.
 def chat_page():
     user = st.session_state["user"]
     st.title("ASCII Chat")
@@ -403,6 +430,7 @@ def chat_page():
             render_conversation(user, selected)
 
 
+# Menampilkan pesan secara berkala; setiap pesan bisa dibuka untuk melihat tabel ASCII dan grafik NRZ-I.
 def render_conversation(user: dict, contact: dict):
     @st.fragment(run_every="2s")
     def conversation():
@@ -450,6 +478,7 @@ def render_conversation(user: dict, contact: dict):
     conversation()
 
 
+# Panel uji mandiri: periksa kode ASCII karakter dan tampilkan sinyal jika teks valid.
 def ascii_test_panel():
     st.subheader("Uji karakter")
     sample = st.text_input("Ketik teks untuk menguji ASCII", key="ascii_test", placeholder="Contoh: IBNU")
@@ -481,6 +510,7 @@ def ascii_test_panel():
             st.warning(reason)
 
 
+# Titik masuk aplikasi: siapkan sesi, lalu tampilkan halaman login atau halaman chat.
 def main():
     init_state()
     if st.session_state["user"] is None:
