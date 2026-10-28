@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import html
 import re
+from contextlib import closing
 import uuid
 from datetime import datetime
 from typing import Any
@@ -30,23 +31,26 @@ def db_connect():
 
 
 def query_one(sql: str, params: tuple = ()) -> Any:
-    with db_connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute(sql, params)
-            return cur.fetchone()
+    with closing(db_connect()) as conn:
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, params)
+                return cur.fetchone()
 
 
 def query_all(sql: str, params: tuple = ()) -> list[dict]:
-    with db_connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute(sql, params)
-            return list(cur.fetchall())
+    with closing(db_connect()) as conn:
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, params)
+                return list(cur.fetchall())
 
 
 def execute(sql: str, params: tuple = ()) -> None:
-    with db_connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute(sql, params)
+    with closing(db_connect()) as conn:
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, params)
 
 
 def init_state():
@@ -241,8 +245,11 @@ def login_user(user_id: str, email: str, password: str) -> tuple[bool, str, dict
 def auth_page():
     st.title("ASCII Chat")
     st.caption("Praktikum Komunikasi Data · Chat satu lawan satu")
-    tab_daftar, tab_masuk = st.tabs(["Daftar", "Masuk"])
-    with tab_daftar:
+    auth_tab = st.radio(
+        "Autentikasi", ["Daftar", "Masuk"], horizontal=True,
+        label_visibility="collapsed", key="auth_tab",
+    )
+    if auth_tab == "Daftar":
         with st.form("form_daftar", clear_on_submit=True):
             new_id = st.text_input("ID pengguna", max_chars=24)
             new_email = st.text_input("Email")
@@ -253,14 +260,17 @@ def auth_page():
             try:
                 ok, message = register_user(new_id, new_email, password, confirm)
                 if ok:
-                    st.success(message)
+                    st.session_state["flash"] = message
                     st.session_state["auth_tab"] = "Masuk"
-                    st.info("Buka tab Masuk untuk melanjutkan.")
+                    st.rerun()
                 else:
                     st.error(message)
             except Exception as exc:
                 st.error(db_error_message(exc))
-    with tab_masuk:
+    else:
+        if st.session_state.get("flash"):
+            st.success(st.session_state["flash"])
+            st.session_state["flash"] = None
         with st.form("form_masuk"):
             user_id = st.text_input("ID pengguna", key="login_id")
             email = st.text_input("Email", key="login_email")
