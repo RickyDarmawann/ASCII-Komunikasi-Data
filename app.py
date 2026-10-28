@@ -4,7 +4,6 @@ from __future__ import annotations
 import html
 import re
 from contextlib import closing
-import uuid
 from typing import Any
 
 import bcrypt
@@ -61,7 +60,7 @@ def execute(sql: str, params: tuple = ()) -> None:
 def init_state():
     defaults = {
         "user": None, "active_contact": None, "auth_tab": "Masuk",
-        "register_ok": False, "flash": None,
+        "flash": None,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -347,7 +346,7 @@ def list_contacts(owner_id: str) -> list[dict]:
 # Mengambil maksimal 100 pesan di antara dua pengguna, dari yang lama ke yang baru.
 def list_messages(owner_id: str, contact_id: str) -> list[dict]:
     return query_all(
-        "SELECT id, sender_id::text AS sender_id, recipient_id::text AS recipient_id, "
+        "SELECT sender_id::text AS sender_id, recipient_id::text AS recipient_id, "
         "body FROM ascii_chat.messages "
         "WHERE (sender_id=%s AND recipient_id=%s) OR (sender_id=%s AND recipient_id=%s) "
         "ORDER BY created_at DESC LIMIT 100",
