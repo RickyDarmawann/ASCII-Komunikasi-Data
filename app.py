@@ -462,7 +462,7 @@ def render_conversation(user: dict, contact: dict):
                 show_signal(msg["body"], key_suffix=f"message_{msg['id']}")
 
         with st.form(f"send_{contact['id']}", clear_on_submit=True):
-            body = st.text_input("Pesan (hanya ASCII tercetak)", max_chars=2000, key=f"body_{contact['id']}")
+            body = st.text_input("Pesan", max_chars=2000, key=f"body_{contact['id']}")
             sent = st.form_submit_button("Kirim", use_container_width=True)
         if sent:
             try:
