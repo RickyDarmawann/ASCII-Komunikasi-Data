@@ -193,12 +193,8 @@ def nrzi_svg(text: str, initial_high: bool = False) -> str:
 
 
 def show_signal(text: str, key_suffix: str = "signal"):
-    level_choice = st.selectbox(
-        "Level awal NRZ-I", ["Rendah (-V)", "Tinggi (+V)"],
-        key=f"level_{key_suffix}_{st.session_state.get('active_contact')}",
-        help="Level akhir satu frame diteruskan ke frame berikutnya.",
-    )
-    svg = nrzi_svg(text, initial_high=level_choice == "Tinggi (+V)")
+    # Level awal selalu rendah; tidak perlu menampilkan pilihan level ke pengguna.
+    svg = nrzi_svg(text, initial_high=False)
     components.html(
         f'<div style="overflow-x:auto;max-width:100%;padding:8px 0">{svg}</div>',
         height=330, scrolling=True,
