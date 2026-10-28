@@ -98,7 +98,7 @@ def encode_character(char: str) -> dict:
     parity = bits.count("1") % 2  # parity bit membuat jumlah 1 genap
     frame = "0" + bits + str(parity) + "1"
     return {
-        "char": char, "hex": f"{value:02X}", "bits": bits,
+        "char": char, "ascii": value, "hex": f"{value:02X}", "bits": bits,
         "parity": parity, "end": 1, "frame": frame,
     }
 
@@ -436,7 +436,9 @@ def render_conversation(user: dict, contact: dict):
             with st.expander(f"Lihat sinyal · {timestamp} · {len(msg['body'])} karakter"):
                 rows = signal_table(msg["body"])
                 st.dataframe(
-                    [{"Karakter": r["char"], "Hex": r["hex"], "Biner 7 bit (MSB dulu)": r["bits"],
+                    [{"Karakter": "spasi" if r["char"] == " " else r["char"],
+                      "Kode ASCII (desimal)": r["ascii"], "Hex": r["hex"],
+                      "Biner 7 bit (MSB dulu)": r["bits"],
                       "Parity Even": r["parity"], "End": r["end"]} for r in rows],
                     hide_index=True, use_container_width=True,
                 )
@@ -468,13 +470,13 @@ def ascii_test_panel():
                 enc = encode_character(item["char"])
                 rows.append({
                     "Karakter": "spasi" if item["char"] == " " else item["char"],
-                    "Desimal": item["code"], "Hex": enc["hex"],
+                    "Kode ASCII (desimal)": item["code"], "Hex": enc["hex"],
                     "Biner 7 bit (MSB dulu)": enc["bits"], "Parity Even": enc["parity"],
                     "Status": "didukung",
                 })
             else:
                 rows.append({
-                    "Karakter": repr(item["char"]), "Desimal": item["code"],
+                    "Karakter": repr(item["char"]), "Kode ASCII (desimal)": item["code"],
                     "Hex": f"{item['code']:02X}", "Biner 7 bit (MSB dulu)": "—",
                     "Parity Even": "—",
                     "Status": f"{item['reason']} (U+{item['code']:04X})",
