@@ -192,10 +192,10 @@ def nrzi_svg(text: str, initial_high: bool = False) -> str:
     return "".join(parts)
 
 
-def show_signal(text: str):
+def show_signal(text: str, key_suffix: str = "signal"):
     level_choice = st.selectbox(
         "Level awal NRZ-I", ["Rendah (-V)", "Tinggi (+V)"],
-        key=f"level_{st.session_state.get('active_contact')}_{hash(text)}",
+        key=f"level_{key_suffix}_{st.session_state.get('active_contact')}",
         help="Level akhir satu frame diteruskan ke frame berikutnya.",
     )
     svg = nrzi_svg(text, initial_high=level_choice == "Tinggi (+V)")
@@ -441,7 +441,7 @@ def render_conversation(user: dict, contact: dict):
                     hide_index=True, use_container_width=True,
                 )
                 st.caption("NRZ-I: bit 1 membalik level di awal bit; bit 0 mempertahankan level.")
-                show_signal(msg["body"])
+                show_signal(msg["body"], key_suffix=f"message_{msg['id']}")
 
         with st.form(f"send_{contact['id']}", clear_on_submit=True):
             body = st.text_input("Pesan (hanya ASCII tercetak)", max_chars=2000, key=f"body_{contact['id']}")
@@ -484,7 +484,7 @@ def ascii_test_panel():
         if ok:
             st.success("Semua karakter didukung oleh ASCII tercetak.")
             with st.expander("Lihat sinyal NRZ-I untuk teks uji"):
-                show_signal(sample)
+                show_signal(sample, key_suffix="ascii_test")
         else:
             st.warning(reason)
 
