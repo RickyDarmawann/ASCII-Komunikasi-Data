@@ -660,48 +660,6 @@ def send_message(sender_id: str, recipient_id: str, body: str) -> tuple[bool, st
     return True, "Pesan terkirim."
 
 
-# Menghapus pesan hanya dari percakapan antara pengguna yang sedang login dan satu kontak.
-def delete_conversation_messages(user_id: str, contact_id: str) -> int:
-    # Hanya hapus pesan yang dikirim di antara dua ID ini, bukan pesan pengguna lain.
-    with closing(db_connect()) as conn:
-        with conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "DELETE FROM ascii_chat.messages "
-                    "WHERE (sender_id=%s AND recipient_id=%s) "
-                    "OR (sender_id=%s AND recipient_id=%s)",
-                    (user_id, contact_id, contact_id, user_id),
-                )
-                # Mengembalikan jumlah pesan yang terhapus dari percakapan terpilih.
-                return cur.rowcount
-
-
-# Meminta konfirmasi sebelum menghapus pesan dari percakapan terpilih.
-@st.dialog("Hapus percakapan?")
-def confirm_delete_conversation(user_id: str, contact_id: str, contact_name: str):
-    st.warning(
-        f"Pesan antara kamu dan {contact_name} akan dihapus untuk kalian berdua. "
-        "Pesan dari percakapan pengguna lain tidak akan terpengaruh. Tindakan ini tidak bisa dibatalkan."
-    )
-    confirm_col, cancel_col = st.columns(2)
-    with confirm_col:
-        if st.button(
-            "Ya, hapus percakapan", type="primary",
-            use_container_width=True, key=f"confirm_delete_conversation_{contact_id}"
-        ):
-            try:
-                deleted_count = delete_conversation_messages(user_id, contact_id)
-                st.session_state["chat_notice"] = (
-                    f"Percakapan dengan {contact_name} dihapus ({deleted_count} pesan)."
-                )
-                st.rerun()
-            except Exception as exc:
-                st.error(db_error_message(exc))
-    with cancel_col:
-        if st.button("Batal", use_container_width=True, key=f"cancel_delete_conversation_{contact_id}"):
-            st.rerun()
-
-
 # Membuat tampilan utama chat: status akun, daftar kontak, dan percakapan terpilih.
 # Membuat fungsi untuk menjalankan tugas yang disebut pada namanya.
 def chat_page():
@@ -808,13 +766,6 @@ def chat_page():
 # Menampilkan pesan secara berkala; setiap pesan bisa dibuka untuk melihat tabel ASCII dan grafik NRZ-I.
 # Membuat fungsi untuk menjalankan tugas yang disebut pada namanya.
 def render_conversation(user: dict, contact: dict):
-    # Tombol hapus hanya berlaku untuk kontak yang sedang dibuka.
-    if st.button(
-        "Hapus percakapan", key=f"delete_conversation_{contact['id']}",
-        help="Hapus pesan antara kamu dan kontak ini saja"
-    ):
-        confirm_delete_conversation(user["id"], contact["id"], contact["user_id"])
-
     # Mengatur cara fungsi di bawahnya dijalankan.
     @st.fragment(run_every="2s")
     # Membuat fungsi untuk menjalankan tugas yang disebut pada namanya.
