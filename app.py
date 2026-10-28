@@ -139,7 +139,7 @@ def nrzi_svg(text: str, initial_high: bool = False) -> str:
         levels.append(level)  # Simpan level untuk digambar pada kolom bit ini.
 
     bit_w, left, top = 42, 24, 72
-    high_y, low_y = 108, 168
+    high_y, low_y = 96, 168  # Posisi level +V dinaikkan sedikit agar grafik lebih lega.
     plot_w = bit_w * len(bits)
     width = left * 2 + plot_w
     height = 300
@@ -305,7 +305,6 @@ def auth_page():
             except Exception as exc:
                 st.error(db_error_message(exc))
     st.divider()
-    st.caption("Encoding: ASCII 7 bit. ANSI, UTF-8, dan UTF-16 tidak didukung sebagai encoding aplikasi.")
 
 
 # Mengubah exception menjadi pesan yang aman ditampilkan kepada pengguna.
@@ -388,7 +387,6 @@ def chat_page():
         st.session_state["user"] = None
         st.session_state["active_contact"] = None
         st.rerun()
-    st.caption("Encoding: ASCII 7 bit. ANSI, UTF-8, dan UTF-16 tidak didukung sebagai encoding aplikasi.")
     left, right = st.columns([1, 2.4], gap="large")
 
     with left:
@@ -460,7 +458,7 @@ def render_conversation(user: dict, contact: dict):
                       "Parity Even": r["parity"], "End": r["end"]} for r in rows],
                     hide_index=True, use_container_width=True,
                 )
-                st.caption("NRZ-I: bit 1 membalik level di awal bit; bit 0 mempertahankan level.")
+                st.subheader("NRZ-I")
                 show_signal(msg["body"], key_suffix=f"message_{msg['id']}")
 
         with st.form(f"send_{contact['id']}", clear_on_submit=True):
