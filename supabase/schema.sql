@@ -1,5 +1,5 @@
--- Jalankan di Supabase SQL Editor pada project Komunikasi-Data.
--- Skema terpisah supaya tabel public.messages/profiles dari proyek lama tidak disentuh.
+-- Skema khusus aplikasi ASCII-Komunikasi-Data.
+-- Namespace terpisah supaya tabel di schema public tidak disentuh.
 CREATE SCHEMA IF NOT EXISTS ascii_chat;
 
 CREATE TABLE IF NOT EXISTS ascii_chat.users (
