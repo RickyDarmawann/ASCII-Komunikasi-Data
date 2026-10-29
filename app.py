@@ -809,17 +809,17 @@ def render_conversation(user: dict, contact: dict):
                 # Menyiapkan daftar hasil yang akan ditampilkan.
                 rows = signal_table(msg["body"])
                 # Menampilkan atau memproses bagian antarmuka Streamlit.
-                st.dataframe(
-                    # Menentukan nilai yang menjadi bagian dari data ini.
-                    [{"Karakter": "spasi" if r["char"] == " " else r["char"],
-                      # Menambahkan teks atau potongan gambar ke hasil.
-                      "Kode ASCII (desimal)": r["ascii"], "Hex": r["hex"],
-                      # Menambahkan teks atau potongan gambar ke hasil.
-                      "Biner 7 bit (MSB dulu)": r["bits"],
-                      # Menambahkan teks atau potongan gambar ke hasil.
-                      "Parity Even": r["parity"], "End": r["end"]} for r in rows],
-                    # Menyimpan hasil proses ke dalam variabel.
-                    hide_index=True, use_container_width=True,
+                # st.dataframe(
+                #     # Menentukan nilai yang menjadi bagian dari data ini.
+                #     [{"Karakter": "spasi" if r["char"] == " " else r["char"],
+                #       # Menambahkan teks atau potongan gambar ke hasil.
+                #       "Kode ASCII (desimal)": r["ascii"], "Hex": r["hex"],
+                #       # Menambahkan teks atau potongan gambar ke hasil.
+                #       "Biner 7 bit (MSB dulu)": r["bits"],
+                #       # Menambahkan teks atau potongan gambar ke hasil.
+                #       "Parity Even": r["parity"], "End": r["end"]} for r in rows],
+                #     # Menyimpan hasil proses ke dalam variabel.
+                #     hide_index=True, use_container_width=True,
                 # Menutup daftar nilai atau pemanggilan fungsi.
                 )
                 # Menampilkan atau memproses bagian antarmuka Streamlit.
