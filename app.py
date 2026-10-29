@@ -363,7 +363,7 @@ def show_signal(text: str):
     # Menampilkan komponen HTML di halaman aplikasi.
     components.html(
         # Menambahkan teks atau potongan gambar ke hasil.
-        f'<div style="overflow-x:auto;max-width:50%;padding:8px 0">{svg}</div>',
+        f'<div style="x:70px;width:50%;padding:8px 0">{svg}</div>',
         # Menentukan posisi atau ukuran gambar.
         height=330, scrolling=True,
     # Menutup daftar nilai atau pemanggilan fungsi.
