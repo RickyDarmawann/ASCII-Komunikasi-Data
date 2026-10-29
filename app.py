@@ -821,7 +821,7 @@ def render_conversation(user: dict, contact: dict):
                 #     # Menyimpan hasil proses ke dalam variabel.
                 #     hide_index=True, use_container_width=True,
                 # Menutup daftar nilai atau pemanggilan fungsi.
-                )
+                # )
                 # Menampilkan atau memproses bagian antarmuka Streamlit.
                 st.subheader("NRZ-I")
                 # Memanggil fungsi untuk menjalankan tugas tertentu.
