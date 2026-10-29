@@ -263,7 +263,7 @@ def nrzi_svg(text: str, initial_high: bool = False) -> str:
         # Menentukan posisi atau ukuran gambar.
         x = left + i * 10 * bit_w
         # Menyimpan hasil proses ke dalam variabel.
-        # char_label = "spasi" if frame["char"] == " " else f"Huruf {frame['char']}"
+        char_label = "spasi" if frame["char"] == " " else f""
         # Bagian ini membantu menjalankan proses aplikasi.
         parts.append(
             # Menambahkan teks atau potongan gambar ke hasil.
