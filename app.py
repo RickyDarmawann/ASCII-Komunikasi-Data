@@ -797,7 +797,7 @@ def render_conversation(user: dict, contact: dict):
                 # Menambahkan teks atau potongan gambar ke hasil.
                 f'border-radius:12px;color:#202124;overflow-wrap:anywhere">'
                 # Menambahkan teks atau potongan gambar ke hasil.
-                f'<div>{html.escape(msg["****"])}</div>'
+               f'<div>{"*" * len(msg["body"])}</div>'
                 # Menambahkan teks atau potongan gambar ke hasil.
                 f'</div></div>',
                 # Menyimpan hasil proses ke dalam variabel.
