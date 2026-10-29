@@ -767,7 +767,7 @@ def chat_page():
 # Membuat fungsi untuk menjalankan tugas yang disebut pada namanya.
 def render_conversation(user: dict, contact: dict):
     # Mengatur cara fungsi di bawahnya dijalankan.
-    @st.fragment(run_every="2s")
+    # @st.fragment(run_every="2s")
     # Membuat fungsi untuk menjalankan tugas yang disebut pada namanya.
     def conversation():
         # Mencoba menjalankan bagian ini sambil menangani jika terjadi kesalahan.
