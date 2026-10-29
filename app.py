@@ -624,6 +624,12 @@ def list_messages(owner_id: str, contact_id: str) -> list[dict]:
     # Menutup daftar nilai atau pemanggilan fungsi.
     )[::-1]
 
+def latest_signature(owner_id: str, contact_id: str):
+    return query_one(
+        "SELECT count(*) AS n, max(created_at) AS last FROM ascii_chat.messages "
+        "WHERE (sender_id=%s AND recipient_id=%s) OR (sender_id=%s AND recipient_id=%s)",
+        (owner_id, contact_id, contact_id, owner_id),
+    )
 
 # Memvalidasi isi pesan, memastikan kedua pihak terhubung sebagai kontak, lalu menyimpan pesan.
 # Membuat fungsi untuk menjalankan tugas yang disebut pada namanya.
@@ -763,96 +769,68 @@ def chat_page():
             render_conversation(user, selected)
 
 
-# Menampilkan pesan secara berkala; setiap pesan bisa dibuka untuk melihat tabel ASCII dan grafik NRZ-I.
-# Membuat fungsi untuk menjalankan tugas yang disebut pada namanya.
 def render_conversation(user: dict, contact: dict):
-    # Mengatur cara fungsi di bawahnya dijalankan.
-    @st.fragment(run_every="3s")
-    # Membuat fungsi untuk menjalankan tugas yang disebut pada namanya.
-    def conversation():
-        # Mencoba menjalankan bagian ini sambil menangani jika terjadi kesalahan.
+    # Pengecek: tiap 1 detik, rerun hanya jika ada pesan baru
+    @st.fragment(run_every="1s")
+    def watcher():
         try:
-            # Menyimpan hasil proses ke dalam variabel.
-            messages = list_messages(user["id"], contact["id"])
-        # Menangani kesalahan jika proses sebelumnya gagal.
-        except Exception as exc:
-            # Menampilkan atau memproses bagian antarmuka Streamlit.
-            st.error(db_error_message(exc))
-            # Membuat daftar untuk menyimpan beberapa nilai.
-            messages = []
-        # Mengulang langkah ini untuk setiap item.
-        for msg in messages:
-            # Menyimpan hasil proses ke dalam variabel.
-            mine = msg["sender_id"] == user["id"]
-            # Menyimpan hasil proses ke dalam variabel.
-            align = "flex-end" if mine else "flex-start"
-            # Menyimpan hasil proses ke dalam variabel.
-            # bubble = "#DDF7E8" if mine else "#F0F2F5"
-            # Menampilkan atau memproses bagian antarmuka Streamlit.
-            # st.markdown(
-            #     # Menambahkan teks atau potongan gambar ke hasil.
-            #     f'<div style="display:flex;justify-content:{align};margin:7px 0">'
-            #     # Menambahkan teks atau potongan gambar ke hasil.
-            #     # f'<div style="max-width:82%;background:{bubble};padding:9px 12px;'
-            #     # Menambahkan teks atau potongan gambar ke hasil.
-            #     # f'border-radius:12px;color:#202124;overflow-wrap:anywhere">'
-            #     # Menambahkan teks atau potongan gambar ke hasil.
-            #     #f'<div>{"*" * len(msg["body"])}</div>'
-            #     # Menambahkan teks atau potongan gambar ke hasil.
-            #     f'</div></div>',
-            #     # Menyimpan hasil proses ke dalam variabel.
-            #     unsafe_allow_html=True,
-            # # Menutup daftar nilai atau pemanggilan fungsi.
-            # )
-            # Membuka proses atau sumber daya yang akan ditutup otomatis.
-            with st.expander(f"Lihat sinyal · {len(msg['body'])} karakter"):
-                # Menyiapkan daftar hasil yang akan ditampilkan.
-                rows = signal_table(msg["body"])
-                # Menampilkan atau memproses bagian antarmuka Streamlit.
-                # st.dataframe(
-                #     # Menentukan nilai yang menjadi bagian dari data ini.
-                #     [{"Karakter": "spasi" if r["char"] == " " else r["char"],
-                #       # Menambahkan teks atau potongan gambar ke hasil.
-                #       "Kode ASCII (desimal)": r["ascii"], "Hex": r["hex"],
-                #       # Menambahkan teks atau potongan gambar ke hasil.
-                #       "Biner 7 bit (MSB dulu)": r["bits"],
-                #       # Menambahkan teks atau potongan gambar ke hasil.
-                #       "Parity Even": r["parity"], "End": r["end"]} for r in rows],
-                #     # Menyimpan hasil proses ke dalam variabel.
-                #     hide_index=True, use_container_width=True,
-                # Menutup daftar nilai atau pemanggilan fungsi.
-                # )
-                # Menampilkan atau memproses bagian antarmuka Streamlit.
-                st.subheader("NRZ-I")
-                # Memanggil fungsi untuk menjalankan tugas tertentu.
-                show_signal(msg["body"])
+            sig = latest_signature(user["id"], contact["id"])
+        except Exception:
+            return
+        key = f"sig_{contact['id']}"
+        if key not in st.session_state:
+            st.session_state[key] = sig
+        elif st.session_state[key] != sig:
+            st.session_state[key] = sig
+            st.rerun()
 
-        # Membuka proses atau sumber daya yang akan ditutup otomatis.
-        with st.form(f"send_{contact['id']}", clear_on_submit=True):
-            # Menyimpan hasil proses ke dalam variabel.
-            body = st.text_input("Pesan", max_chars=2000, key=f"body_{contact['id']}")
-            # Menyimpan hasil proses ke dalam variabel.
-            sent = st.form_submit_button("Kirim", use_container_width=True)
-        # Memeriksa apakah syarat ini benar.
-        if sent:
-            # Mencoba menjalankan bagian ini sambil menangani jika terjadi kesalahan.
-            try:
-                # Bagian ini membantu menjalankan proses aplikasi.
-                ok, message = send_message(user["id"], contact["id"], body)
-                # Memeriksa apakah syarat ini benar.
-                if ok:
-                    # Menampilkan atau memproses bagian antarmuka Streamlit.
-                    st.rerun()
-                # Menjalankan bagian ini jika syarat sebelumnya tidak terpenuhi.
-                else:
-                    # Menampilkan atau memproses bagian antarmuka Streamlit.
-                    st.error(message)
-            # Menangani kesalahan jika proses sebelumnya gagal.
-            except Exception as exc:
-                # Menampilkan atau memproses bagian antarmuka Streamlit.
-                st.error(db_error_message(exc))
-    # Memanggil fungsi untuk menjalankan tugas tertentu.
-    conversation()
+    watcher()
+
+    # Tampilan pesan (di luar fragment)
+    try:
+        messages = list_messages(user["id"], contact["id"])
+    except Exception as exc:
+        st.error(db_error_message(exc))
+        messages = []
+
+    for msg in messages:
+        mine = msg["sender_id"] == user["id"]
+        align = "flex-end" if mine else "flex-start"
+        bubble = "#DDF7E8" if mine else "#F0F2F5"
+        st.markdown(
+            f'<div style="display:flex;justify-content:{align};margin:7px 0">'
+            f'<div style="max-width:82%;background:{bubble};padding:9px 12px;'
+            f'border-radius:12px;color:#202124;overflow-wrap:anywhere">'
+            f'<div>{html.escape(msg["body"])}</div>'
+            f'</div></div>',
+            unsafe_allow_html=True,
+        )
+        with st.expander(f"Lihat sinyal · {len(msg['body'])} karakter"):
+            rows = signal_table(msg["body"])
+            st.dataframe(
+                [{"Karakter": "spasi" if r["char"] == " " else r["char"],
+                  "Kode ASCII (desimal)": r["ascii"], "Hex": r["hex"],
+                  "Biner 7 bit (MSB dulu)": r["bits"],
+                  "Parity Even": r["parity"], "End": r["end"]} for r in rows],
+                hide_index=True, use_container_width=True,
+            )
+            st.subheader("NRZ-I")
+            show_signal(msg["body"])
+
+    # Form kirim (di luar fragment, ketikan tidak hilang)
+    with st.form(f"send_{contact['id']}", clear_on_submit=True):
+        body = st.text_input("Pesan", max_chars=2000, key=f"body_{contact['id']}")
+        sent = st.form_submit_button("Kirim", use_container_width=True)
+    if sent:
+        try:
+            ok, message = send_message(user["id"], contact["id"], body)
+            if ok:
+                st.rerun()
+            else:
+                st.error(message)
+        except Exception as exc:
+            st.error(db_error_message(exc))
+
 
 
 # Panel uji mandiri: periksa kode ASCII karakter dan tampilkan sinyal jika teks valid.
