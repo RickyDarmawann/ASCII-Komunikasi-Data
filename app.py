@@ -789,21 +789,21 @@ def render_conversation(user: dict, contact: dict):
             # Menyimpan hasil proses ke dalam variabel.
             # bubble = "#DDF7E8" if mine else "#F0F2F5"
             # Menampilkan atau memproses bagian antarmuka Streamlit.
-            st.markdown(
-                # Menambahkan teks atau potongan gambar ke hasil.
-                f'<div style="display:flex;justify-content:{align};margin:7px 0">'
-                # Menambahkan teks atau potongan gambar ke hasil.
-                # f'<div style="max-width:82%;background:{bubble};padding:9px 12px;'
-                # Menambahkan teks atau potongan gambar ke hasil.
-                f'border-radius:12px;color:#202124;overflow-wrap:anywhere">'
-                # Menambahkan teks atau potongan gambar ke hasil.
-                #f'<div>{"*" * len(msg["body"])}</div>'
-                # Menambahkan teks atau potongan gambar ke hasil.
-                f'</div></div>',
-                # Menyimpan hasil proses ke dalam variabel.
-                unsafe_allow_html=True,
-            # Menutup daftar nilai atau pemanggilan fungsi.
-            )
+            # st.markdown(
+            #     # Menambahkan teks atau potongan gambar ke hasil.
+            #     f'<div style="display:flex;justify-content:{align};margin:7px 0">'
+            #     # Menambahkan teks atau potongan gambar ke hasil.
+            #     # f'<div style="max-width:82%;background:{bubble};padding:9px 12px;'
+            #     # Menambahkan teks atau potongan gambar ke hasil.
+            #     # f'border-radius:12px;color:#202124;overflow-wrap:anywhere">'
+            #     # Menambahkan teks atau potongan gambar ke hasil.
+            #     #f'<div>{"*" * len(msg["body"])}</div>'
+            #     # Menambahkan teks atau potongan gambar ke hasil.
+            #     f'</div></div>',
+            #     # Menyimpan hasil proses ke dalam variabel.
+            #     unsafe_allow_html=True,
+            # # Menutup daftar nilai atau pemanggilan fungsi.
+            # )
             # Membuka proses atau sumber daya yang akan ditutup otomatis.
             with st.expander(f"Lihat sinyal · {len(msg['body'])} karakter"):
                 # Menyiapkan daftar hasil yang akan ditampilkan.
