@@ -329,7 +329,7 @@ def nrzi_svg(text: str, initial_high: bool = False) -> str:
         # Menentukan posisi atau ukuran gambar.
         x = left + i * 10 * bit_w
         # Membuat daftar untuk menyimpan beberapa nilai.
-        groups = [(0, 1, "S"), (1, 8, f'Data "{html.escape(frame["char"])}"'), (8, 9, "P"), (9, 10, "E")]
+        # groups = [(0, 1, "S"), (1, 8, f'Data "{html.escape(frame["char"])}"'), (8, 9, "P"), (9, 10, "E")]
         # Mengulang langkah ini untuk setiap item.
         for a, b, label in groups:
             # Bagian ini membantu menjalankan proses aplikasi.
